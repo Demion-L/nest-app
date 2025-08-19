@@ -6,8 +6,14 @@ import {
   Param,
   Put,
   Delete,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FlowersService } from './flowers.service';
+import { AuthGuard } from 'src/conception/guard';
+import { LoggingInterceptor } from 'src/conception/interceptor';
 
 type CreateFlowerDto = {
   name: string;
@@ -18,11 +24,16 @@ type CreateFlowerDto = {
 type UpdateFlowerDto = Partial<CreateFlowerDto>;
 
 @Controller('flowers')
+// Interceptors
+@UseInterceptors(LoggingInterceptor)
 export class FlowersController {
   constructor(private readonly flowersService: FlowersService) {}
 
   @Get()
-  findAll() {
+  // Guards
+  @UseGuards(AuthGuard)
+  findAll(@Query('pageNumber', ParseIntPipe) pageNumber: number) {
+    console.log(pageNumber);
     return this.flowersService.findAll();
   }
 
