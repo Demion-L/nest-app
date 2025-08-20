@@ -1,79 +1,60 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { flowers, Prisma } from 'generated/prisma';
+import { PrismaService } from 'src/prisma.service';
 
-type Flower = {
-  id: number;
-  name: string;
-  color: string;
-  price: number;
-};
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as Record<string, unknown>).message === 'string'
+  );
+}
 
 @Injectable()
 export class FlowersService {
-  private flowers: Flower[] = [
-    {
-      id: 1,
-      name: 'Rose',
-      color: 'Red',
-      price: 100,
-    },
-    {
-      id: 2,
-      name: 'Tulip',
-      color: 'Yellow',
-      price: 200,
-    },
-    {
-      id: 3,
-      name: 'Chrysanthemum',
-      color: 'White',
-      price: 300,
-    },
-  ];
+  constructor(private readonly prismaService: PrismaService) {}
 
-  private lastId = 3;
-
-  findAll() {
-    return [...this.flowers];
+  async findAll(): Promise<flowers[]> {
+    return this.prismaService.flowers.findMany();
   }
 
-  findOne(id: number) {
-    const flower = this.flowers.find((f) => f.id === id);
+  async findOne(id: number): Promise<flowers> {
+    const flower = await this.prismaService.flowers.findUnique({
+      where: { id },
+    });
     if (!flower) {
-      throw new NotFoundException(`Flower with ID ${id} not found`);
+      throw new Error(`Flower with ID ${id} not found`);
     }
-    return { ...flower };
+    return flower;
   }
 
-  create(createFlowerDto: Omit<Flower, 'id'>) {
-    const newFlower = {
-      id: ++this.lastId,
-      ...createFlowerDto,
-    };
-    this.flowers.push(newFlower);
-    return newFlower;
+  async create(data: Prisma.flowersCreateInput): Promise<flowers> {
+    return this.prismaService.flowers.create({ data });
   }
 
-  update(id: number, updateFlowerDto: Partial<Omit<Flower, 'id'>>) {
-    const flowerIndex = this.flowers.findIndex((f) => f.id === id);
-    if (flowerIndex === -1) {
-      throw new NotFoundException(`Flower with ID ${id} not found`);
+  async update(id: number, data: Prisma.flowersUpdateInput): Promise<flowers> {
+    try {
+      return await this.prismaService.flowers.update({
+        where: { id },
+        data: { ...data, updated_at: new Date() },
+      });
+    } catch (error) {
+      const errorMessage = isErrorWithMessage(error)
+        ? error.message
+        : 'Unknown error occurred';
+      throw new Error(`Failed to update flower with ID ${id}: ${errorMessage}`);
     }
-
-    this.flowers[flowerIndex] = {
-      ...this.flowers[flowerIndex],
-      ...updateFlowerDto,
-    };
-
-    return { ...this.flowers[flowerIndex] };
   }
 
-  remove(id: number) {
-    const flowerIndex = this.flowers.findIndex((f) => f.id === id);
-    if (flowerIndex === -1) {
-      throw new NotFoundException(`Flower with ID ${id} not found`);
+  async remove(id: number): Promise<flowers> {
+    try {
+      return await this.prismaService.flowers.delete({ where: { id } });
+    } catch (error) {
+      const errorMessage = isErrorWithMessage(error)
+        ? error.message
+        : 'Unknown error occurred';
+      throw new Error(`Failed to delete flower with ID ${id}: ${errorMessage}`);
     }
-
-    const [deletedFlower] = this.flowers.splice(flowerIndex, 1);
-    return { ...deletedFlower };
   }
 }
