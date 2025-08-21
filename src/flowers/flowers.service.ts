@@ -1,15 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { flowers, Prisma } from 'generated/prisma';
 import { PrismaService } from 'src/prisma.service';
-
-function isErrorWithMessage(error: unknown): error is { message: string } {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    typeof (error as Record<string, unknown>).message === 'string'
-  );
-}
+import { CreateFlowerDto, UpdateFlowerDto } from './dto/flowers.dto';
 
 @Injectable()
 export class FlowersService {
@@ -18,32 +10,34 @@ export class FlowersService {
   async findAll(): Promise<flowers[]> {
     return this.prismaService.flowers.findMany();
   }
-
   async findOne(id: number): Promise<flowers> {
     const flower = await this.prismaService.flowers.findUnique({
       where: { id },
     });
     if (!flower) {
-      throw new Error(`Flower with ID ${id} not found`);
+      throw new NotFoundException(`Flower with ID ${id} not found`);
     }
     return flower;
   }
 
-  async create(data: Prisma.flowersCreateInput): Promise<flowers> {
-    return this.prismaService.flowers.create({ data });
+  async create(dto: CreateFlowerDto): Promise<flowers> {
+    return this.prismaService.flowers.create({ data: dto });
   }
 
-  async update(id: number, data: Prisma.flowersUpdateInput): Promise<flowers> {
+  async update(id: number, dto: UpdateFlowerDto): Promise<flowers> {
     try {
       return await this.prismaService.flowers.update({
         where: { id },
-        data: { ...data, updated_at: new Date() },
+        data: { ...dto, updated_at: new Date() },
       });
     } catch (error) {
-      const errorMessage = isErrorWithMessage(error)
-        ? error.message
-        : 'Unknown error occurred';
-      throw new Error(`Failed to update flower with ID ${id}: ${errorMessage}`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Flower with ID ${id} not found`);
+      }
+      throw error;
     }
   }
 
@@ -51,10 +45,13 @@ export class FlowersService {
     try {
       return await this.prismaService.flowers.delete({ where: { id } });
     } catch (error) {
-      const errorMessage = isErrorWithMessage(error)
-        ? error.message
-        : 'Unknown error occurred';
-      throw new Error(`Failed to delete flower with ID ${id}: ${errorMessage}`);
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Flower with ID ${id} not found`);
+      }
+      throw error;
     }
   }
 }
