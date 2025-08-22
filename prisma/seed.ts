@@ -1,10 +1,10 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.flowers.deleteMany();
+  await prisma.flower.deleteMany();
 
-  await prisma.flowers.createMany({
+  await prisma.flower.createMany({
     data: [
       { name: 'Rose', color: 'Red', price: 10.5 },
       { name: 'Tulip', color: 'Yellow', price: 7.0 },

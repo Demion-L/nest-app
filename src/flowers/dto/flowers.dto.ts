@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsNumberString,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
 
@@ -18,3 +24,13 @@ export class CreateFlowerDto {
 
 // PartialType allows to make all properties optional
 export class UpdateFlowerDto extends PartialType(CreateFlowerDto) {}
+
+export class GetFlowersDto {
+  @IsOptional()
+  @IsNumberString()
+  pageNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+}

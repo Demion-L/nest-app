@@ -1,17 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { flowers, Prisma } from 'generated/prisma';
+import { Flower } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/prisma.service';
 import { CreateFlowerDto, UpdateFlowerDto } from './dto/flowers.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class FlowersService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  async findAll(): Promise<flowers[]> {
-    return this.prismaService.flowers.findMany();
+  findAll(): Promise<Flower[]> {
+    return this.prismaService.flower.findMany();
   }
-  async findOne(id: number): Promise<flowers> {
-    const flower = await this.prismaService.flowers.findUnique({
+  async findOne(id: number): Promise<Flower> {
+    const flower = await this.prismaService.flower.findUnique({
       where: { id },
     });
     if (!flower) {
@@ -20,19 +25,20 @@ export class FlowersService {
     return flower;
   }
 
-  async create(dto: CreateFlowerDto): Promise<flowers> {
-    return this.prismaService.flowers.create({ data: dto });
+  async create(dto: CreateFlowerDto): Promise<Flower> {
+    const flower = await this.prismaService.flower.create({ data: dto });
+    return flower;
   }
 
-  async update(id: number, dto: UpdateFlowerDto): Promise<flowers> {
+  async update(id: number, dto: UpdateFlowerDto): Promise<Flower> {
     try {
-      return await this.prismaService.flowers.update({
+      return await this.prismaService.flower.update({
         where: { id },
         data: { ...dto, updated_at: new Date() },
       });
     } catch (error) {
       if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error instanceof PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
         throw new NotFoundException(`Flower with ID ${id} not found`);
@@ -41,12 +47,12 @@ export class FlowersService {
     }
   }
 
-  async remove(id: number): Promise<flowers> {
+  async remove(id: number): Promise<Flower> {
     try {
-      return await this.prismaService.flowers.delete({ where: { id } });
+      return await this.prismaService.flower.delete({ where: { id } });
     } catch (error) {
       if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error instanceof PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
         throw new NotFoundException(`Flower with ID ${id} not found`);
